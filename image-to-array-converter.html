@@ -3,213 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image to Binary Array Converter</title>
+    <title>Image to Array | Material 3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
     <style>
+        :root {
+            /* --- Material 3 Color Tokens (Dark Theme Baseline) --- */
+            --md-sys-color-background: #141218;
+            --md-sys-color-on-background: #E6E1E5;
+            
+            --md-sys-color-surface: #141218;
+            --md-sys-color-surface-container: #211F26;
+            --md-sys-color-surface-container-high: #2B2930;
+            
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-primary: #381E72;
+            --md-sys-color-primary-container: #4F378B;
+            --md-sys-color-on-primary-container: #EADDFF;
+            
+            --md-sys-color-secondary-container: #4A4458;
+            --md-sys-color-on-secondary-container: #E8DEF8;
+            
+            --md-sys-color-outline: #938F99;
+            --md-sys-color-outline-variant: #49454F;
+
+            /* --- Spacing & Radius --- */
+            --md-sys-shape-corner-large: 28px;
+            --md-sys-shape-corner-medium: 16px;
+            --md-sys-shape-corner-full: 9999px; /* Pill shape */
+        }
+
         body {
-            font-family: monospace;
-            max-width: 900px;
-            margin: 40px auto;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
             padding: 20px;
-            background: #282a36;
-            color: #f8f8f2;
         }
-        .container {
-            background: #44475a;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+
+        .app-layout {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
+
+        /* --- Header Section --- */
+        header {
+            padding: 20px 0;
+        }
+
         h1 {
-            color: #ff79c6;
-            margin-top: 0;
+            font-size: 32px; /* Headline Medium */
+            font-weight: 400;
+            margin: 0;
+            color: var(--md-sys-color-on-background);
         }
-        h2 {
-            color: #8be9fd;
-            margin-top: 30px;
+
+        p.subtitle {
+            font-size: 16px; /* Body Large */
+            color: var(--md-sys-color-outline);
+            margin-top: 8px;
+            letter-spacing: 0.5px;
         }
-        p {
-            color: #f8f8f2;
+
+        /* --- Main Card --- */
+        .card {
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
+
+        /* --- Tabs (Segmented Button) --- */
         .tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #6272a4;
+            background-color: var(--md-sys-color-surface-container-high);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-full);
+            padding: 0;
+            overflow: hidden;
+            width: fit-content;
+            margin: 0 auto;
         }
+
         .tab {
-            padding: 10px 20px;
-            background: #282a36;
+            background: transparent;
             border: none;
-            color: #f8f8f2;
-            cursor: pointer;
-            border-radius: 8px 8px 0 0;
+            color: var(--md-sys-color-on-secondary-container);
+            padding: 10px 24px;
+            font-family: 'Roboto', sans-serif;
             font-size: 14px;
-            transition: all 0.3s;
+            font-weight: 500;
+            letter-spacing: 0.1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-right: 1px solid var(--md-sys-color-outline-variant);
+            transition: background 0.2s;
         }
-        .tab:hover {
-            background: #6272a4;
+
+        .tab:last-child {
+            border-right: none;
         }
+
         .tab.active {
-            background: #bd93f9;
-            color: #282a36;
-            font-weight: bold;
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
         }
-        .tab-content {
-            display: none;
+
+        .tab:hover:not(.active) {
+            background-color: rgba(232, 222, 248, 0.08);
         }
-        .tab-content.active {
-            display: block;
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        .upload-area {
-            border: 2px dashed #6272a4;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px;
-            margin: 20px 0;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #282a36;
-        }
-        .upload-area:hover {
-            border-color: #bd93f9;
-            background: #44475a;
-        }
-        input[type="file"] {
-            display: none;
-        }
-        .controls {
+
+        /* --- Canvas Areas --- */
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
             margin: 20px 0;
         }
-        label {
-            display: inline-block;
-            margin-right: 10px;
-            font-weight: bold;
-            color: #8be9fd;
+
+        canvas {
+            border-radius: var(--md-sys-shape-corner-medium);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
-        input[type="range"] {
-            width: 200px;
-            vertical-align: middle;
-        }
-        #canvas {
-            border: 1px solid #6272a4;
-            margin: 20px 0;
-            display: block;
-            image-rendering: pixelated;
-            background: #282a36;
-        }
+
         #drawCanvas {
-            border: 2px solid #6272a4;
-            margin: 20px auto;
-            display: block;
-            cursor: crosshair;
-            background: white;
-            image-rendering: pixelated;
+            background-color: white; /* Keep canvas white for drawing contrast */
+            border: 4px solid var(--md-sys-color-outline-variant);
         }
-        .draw-tools {
-            text-align: center;
-            margin: 20px 0;
+        
+        #canvas {
+            background-color: #000;
+            max-width: 100%;
         }
+
+        /* --- Toolbars --- */
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        /* --- Icon Button / Chip --- */
         .tool-btn {
-            background: #6272a4;
-            color: #f8f8f2;
-            border: 2px solid #6272a4;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 4px;
-            cursor: pointer;
+            background-color: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            color: var(--md-sys-color-primary);
+            border-radius: 8px;
+            padding: 8px 16px;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
         }
-        .tool-btn:hover {
-            background: #44475a;
-        }
+
         .tool-btn.active {
-            background: #bd93f9;
-            color: #282a36;
-            border-color: #bd93f9;
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-color: transparent;
         }
+
+        .tool-btn:hover {
+            background-color: rgba(208, 188, 255, 0.08);
+        }
+
+        /* --- Upload Area --- */
+        .upload-area {
+            border: 2px dashed var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: rgba(0,0,0,0.2);
+            margin-bottom: 24px;
+        }
+
+        .upload-area:hover {
+            border-color: var(--md-sys-color-primary);
+            background-color: rgba(208, 188, 255, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--md-sys-color-primary);
+            margin-bottom: 16px;
+        }
+
+        /* --- Sliders --- */
+        .controls-group {
+            background-color: var(--md-sys-color-surface-container-high);
+            padding: 16px 24px;
+            border-radius: var(--md-sys-shape-corner-medium);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: var(--md-sys-color-secondary-container);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--md-sys-color-primary);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid var(--md-sys-color-surface);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* --- Code Output --- */
+        .output-section {
+            background-color: #000;
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: 16px;
+            position: relative;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .output-header h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--md-sys-color-outline);
+            margin: 0;
+        }
+
         #output {
-            background: #282a36;
-            border: 1px solid #6272a4;
-            padding: 15px;
-            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            color: #A5D6FF; /* Kotlin-ish string color */
             white-space: pre-wrap;
             word-wrap: break-word;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
-            font-size: 12px;
-            color: #50fa7b;
+            line-height: 1.5;
         }
-        button {
-            background: #bd93f9;
-            color: #282a36;
+
+        /* --- Filled Button (Primary Action) --- */
+        .btn-filled {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
+            padding: 10px 24px;
+            border-radius: var(--md-sys-shape-corner-full);
+            font-weight: 500;
             font-size: 14px;
-            margin-top: 10px;
-            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: box-shadow 0.2s;
         }
-        button:hover {
-            background: #ff79c6;
+
+        .btn-filled:hover {
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
+            background-color: #E2D3FF; /* Lighter on hover */
+            color: #1d0f3b;
         }
-        .info {
-            color: #6272a4;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-        #thresholdValue {
-            color: #ffb86c;
-        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #49454F; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #938F99; }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Image to Binary Array Converter</h1>
-        <p>Convert black and white images into Kotlin/Java intArrayOf() format</p>
-        
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('draw')">✏️ Draw</button>
-            <button class="tab" onclick="switchTab('upload')">📁 Upload Image</button>
+
+    <div class="app-layout">
+        <header>
+            <h1>Pixel Array Studio</h1>
+            <p class="subtitle">Generate Kotlin IntArrays for OLED displays</p>
+        </header>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('draw')">
+                    <span class="material-symbols-outlined">brush</span> Draw
+                </button>
+                <button class="tab" onclick="switchTab('upload')">
+                    <span class="material-symbols-outlined">upload_file</span> Upload
+                </button>
+            </div>
+
+            <div id="drawTab" class="tab-content active">
+                <div class="toolbar">
+                    <button class="tool-btn active" id="pencilBtn" onclick="setTool('pencil')">
+                        <span class="material-symbols-outlined">edit</span> Pencil
+                    </button>
+                    <button class="tool-btn" id="eraserBtn" onclick="setTool('eraser')">
+                        <span class="material-symbols-outlined">ink_eraser</span> Eraser
+                    </button>
+                    <button class="tool-btn" onclick="clearCanvas()">
+                        <span class="material-symbols-outlined">delete</span> Clear
+                    </button>
+                </div>
+                
+                <div class="canvas-container">
+                    <canvas id="drawCanvas" width="510" height="510"></canvas>
+                </div>
+                <p style="text-align: center; color: var(--md-sys-color-outline); font-size: 12px;">
+                    17×17 Grid • Drag to paint
+                </p>
+            </div>
+
+            <div id="uploadTab" class="tab-content">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <span class="material-symbols-outlined upload-icon">cloud_upload</span>
+                    <p style="margin:0; font-weight: 500; color: var(--md-sys-color-on-surface);">Click to upload image</p>
+                    <p style="margin:4px 0 0; font-size: 12px; color: var(--md-sys-color-outline);">PNG, JPG supported</p>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display:none">
+                
+                <div class="controls-group">
+                    <label for="threshold">Threshold</label>
+                    <input type="range" id="threshold" min="0" max="255" value="128">
+                    <span id="thresholdValue" style="font-family: monospace; color: var(--md-sys-color-primary);">128</span>
+                </div>
+                
+                <div class="canvas-container">
+                    <canvas id="canvas"></canvas>
+                </div>
+            </div>
         </div>
 
-        <!-- Draw Tab -->
-        <div id="drawTab" class="tab-content active">
-            <div class="draw-tools">
-                <button class="tool-btn active" id="pencilBtn" onclick="setTool('pencil')">✏️ Pencil</button>
-                <button class="tool-btn" id="eraserBtn" onclick="setTool('eraser')">🧹 Eraser</button>
-                <button class="tool-btn" onclick="clearCanvas()">🗑️ Clear All</button>
+        <div class="output-section">
+            <div class="output-header">
+                <h2>Generated Code</h2>
+                <button class="btn-filled" onclick="copyToClipboard()">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span>
+                    Copy
+                </button>
             </div>
-            <canvas id="drawCanvas" width="510" height="510"></canvas>
-            <p class="info" style="text-align: center;">Click and drag to draw • 17×17 pixel grid</p>
+            <div id="output">// Draw or upload to generate code...</div>
         </div>
-
-        <!-- Upload Tab -->
-        <div id="uploadTab" class="tab-content">
-            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-                <p>📁 Click to upload an image or drag & drop</p>
-                <p class="info">Supports PNG, JPG, GIF, etc.</p>
-            </div>
-            <input type="file" id="fileInput" accept="image/*">
-            
-            <div class="controls">
-                <label for="threshold">Threshold (0-255):</label>
-                <input type="range" id="threshold" min="0" max="255" value="128">
-                <span id="thresholdValue">128</span>
-                <p class="info">Adjust threshold to determine what counts as black vs white</p>
-            </div>
-            
-            <canvas id="canvas"></canvas>
-        </div>
-
-        <h2>Generated Code:</h2>
-        <button onclick="copyToClipboard()">📋 Copy to Clipboard</button>
-        <div id="output">Draw something or upload an image to generate code!</div>
     </div>
 
     <script>
-        // Upload functionality
+        // --- LOGIC PRESERVED FROM ORIGINAL ---
+        
         const fileInput = document.getElementById('fileInput');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -225,12 +403,11 @@
         let currentTool = 'pencil';
         let isDrawing = false;
         let pixelData = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
-        
         let currentImage = null;
 
-        // Initialize draw canvas
         function initDrawCanvas() {
-            drawCtx.fillStyle = 'white';
+            // White canvas for the drawing area
+            drawCtx.fillStyle = '#ffffff'; 
             drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
             drawGrid();
         }
@@ -238,7 +415,6 @@
         function drawGrid() {
             drawCtx.strokeStyle = '#e0e0e0';
             drawCtx.lineWidth = 1;
-            
             for (let i = 0; i <= gridSize; i++) {
                 drawCtx.beginPath();
                 drawCtx.moveTo(i * cellSize, 0);
@@ -264,7 +440,7 @@
                     pixelData[row][col] = 0;
                     drawCtx.fillStyle = 'white';
                 }
-                
+                // Fill cell with padding for grid lines
                 drawCtx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
                 updateOutput();
             }
@@ -273,32 +449,24 @@
         drawCanvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
             const rect = drawCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            drawPixel(x, y);
+            drawPixel(e.clientX - rect.left, e.clientY - rect.top);
         });
 
         drawCanvas.addEventListener('mousemove', (e) => {
             if (!isDrawing) return;
             const rect = drawCanvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            drawPixel(x, y);
+            drawPixel(e.clientX - rect.left, e.clientY - rect.top);
         });
 
-        drawCanvas.addEventListener('mouseup', () => {
-            isDrawing = false;
-        });
-
-        drawCanvas.addEventListener('mouseleave', () => {
-            isDrawing = false;
-        });
+        drawCanvas.addEventListener('mouseup', () => isDrawing = false);
+        drawCanvas.addEventListener('mouseleave', () => isDrawing = false);
 
         function setTool(tool) {
             currentTool = tool;
             document.getElementById('pencilBtn').classList.toggle('active', tool === 'pencil');
             document.getElementById('eraserBtn').classList.toggle('active', tool === 'eraser');
-            drawCanvas.style.cursor = tool === 'pencil' ? 'crosshair' : 'not-allowed';
+            // Visual cursor change
+            drawCanvas.style.cursor = tool === 'pencil' ? 'crosshair' : 'cell';
         }
 
         function clearCanvas() {
@@ -308,9 +476,7 @@
         }
 
         function updateOutput() {
-            let code = pixelData.map(row => 
-                `intArrayOf(${row.join(', ')})`
-            ).join(', \n');
+            let code = pixelData.map(row => `intArrayOf(${row.join(', ')})`).join(', \n');
             output.textContent = code;
         }
 
@@ -327,38 +493,34 @@
             }
         }
 
-        // Drag and drop support
+        // Upload Logic
         const uploadArea = document.querySelector('.upload-area');
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#bd93f9';
+            uploadArea.style.borderColor = 'var(--md-sys-color-primary)';
+            uploadArea.style.backgroundColor = 'var(--md-sys-color-primary-container)';
         });
         
         uploadArea.addEventListener('dragleave', () => {
-            uploadArea.style.borderColor = '#6272a4';
+            uploadArea.style.borderColor = 'var(--md-sys-color-outline-variant)';
+            uploadArea.style.backgroundColor = 'rgba(0,0,0,0.2)';
         });
         
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#6272a4';
+            uploadArea.style.borderColor = 'var(--md-sys-color-outline-variant)';
+            uploadArea.style.backgroundColor = 'rgba(0,0,0,0.2)';
             const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                loadImage(file);
-            }
+            if (file && file.type.startsWith('image/')) loadImage(file);
         });
 
         fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                loadImage(file);
-            }
+            if (e.target.files[0]) loadImage(e.target.files[0]);
         });
 
         thresholdSlider.addEventListener('input', (e) => {
             thresholdValue.textContent = e.target.value;
-            if (currentImage) {
-                processImage(currentImage);
-            }
+            if (currentImage) processImage(currentImage);
         });
 
         function loadImage(file) {
@@ -382,50 +544,39 @@
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
             const threshold = parseInt(thresholdSlider.value);
-            
             let result = [];
             
             for (let y = 0; y < canvas.height; y++) {
                 let row = [];
                 for (let x = 0; x < canvas.width; x++) {
                     const i = (y * canvas.width + x) * 4;
-                    const r = data[i];
-                    const g = data[i + 1];
-                    const b = data[i + 2];
-                    
-                    const gray = (r + g + b) / 3;
-                    const pixel = gray < threshold ? 1 : 0;
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    const pixel = avg < threshold ? 1 : 0;
                     row.push(pixel);
                     
                     const color = pixel === 1 ? 0 : 255;
-                    data[i] = color;
-                    data[i + 1] = color;
-                    data[i + 2] = color;
+                    data[i] = data[i+1] = data[i+2] = color;
                 }
                 result.push(row);
             }
-            
             ctx.putImageData(imageData, 0, 0);
             
-            let code = result.map(row => 
-                `intArrayOf(${row.join(', ')})`
-            ).join(', \n');
-            
-            output.textContent = code;
+            output.textContent = result.map(row => `intArrayOf(${row.join(', ')})`).join(', \n');
         }
 
         function copyToClipboard() {
-            const text = output.textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Copied to clipboard!');
-            }).catch(err => {
-                console.error('Failed to copy:', err);
+            navigator.clipboard.writeText(output.textContent).then(() => {
+                // Simple feedback without alert
+                const originalText = document.querySelector('.btn-filled').innerHTML;
+                document.querySelector('.btn-filled').innerHTML = `<span class="material-symbols-outlined">check</span> Copied`;
+                setTimeout(() => {
+                    document.querySelector('.btn-filled').innerHTML = originalText;
+                }, 2000);
             });
         }
 
-        // Initialize
+        // Init
         initDrawCanvas();
-        updateOutput();
     </script>
 </body>
 </html>
