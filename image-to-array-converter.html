@@ -23,8 +23,42 @@
             color: #ff79c6;
             margin-top: 0;
         }
+        h2 {
+            color: #8be9fd;
+            margin-top: 30px;
+        }
         p {
             color: #f8f8f2;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #6272a4;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #282a36;
+            border: none;
+            color: #f8f8f2;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            background: #6272a4;
+        }
+        .tab.active {
+            background: #bd93f9;
+            color: #282a36;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
         }
         .upload-area {
             border: 2px dashed #6272a4;
@@ -56,12 +90,43 @@
             width: 200px;
             vertical-align: middle;
         }
-        canvas {
+        #canvas {
             border: 1px solid #6272a4;
             margin: 20px 0;
             display: block;
             image-rendering: pixelated;
             background: #282a36;
+        }
+        #drawCanvas {
+            border: 2px solid #6272a4;
+            margin: 20px auto;
+            display: block;
+            cursor: crosshair;
+            background: white;
+            image-rendering: pixelated;
+        }
+        .draw-tools {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .tool-btn {
+            background: #6272a4;
+            color: #f8f8f2;
+            border: 2px solid #6272a4;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .tool-btn:hover {
+            background: #44475a;
+        }
+        .tool-btn.active {
+            background: #bd93f9;
+            color: #282a36;
+            border-color: #bd93f9;
         }
         #output {
             background: #282a36;
@@ -104,27 +169,47 @@
         <h1>Image to Binary Array Converter</h1>
         <p>Convert black and white images into Kotlin/Java intArrayOf() format</p>
         
-        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-            <p>📁 Click to upload an image or drag & drop</p>
-            <p class="info">Supports PNG, JPG, GIF, etc.</p>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('draw')">✏️ Draw</button>
+            <button class="tab" onclick="switchTab('upload')">📁 Upload Image</button>
         </div>
-        <input type="file" id="fileInput" accept="image/*">
-        
-        <div class="controls">
-            <label for="threshold">Threshold (0-255):</label>
-            <input type="range" id="threshold" min="0" max="255" value="128">
-            <span id="thresholdValue">128</span>
-            <p class="info">Adjust threshold to determine what counts as black vs white</p>
+
+        <!-- Draw Tab -->
+        <div id="drawTab" class="tab-content active">
+            <div class="draw-tools">
+                <button class="tool-btn active" id="pencilBtn" onclick="setTool('pencil')">✏️ Pencil</button>
+                <button class="tool-btn" id="eraserBtn" onclick="setTool('eraser')">🧹 Eraser</button>
+                <button class="tool-btn" onclick="clearCanvas()">🗑️ Clear All</button>
+            </div>
+            <canvas id="drawCanvas" width="510" height="510"></canvas>
+            <p class="info" style="text-align: center;">Click and drag to draw • 17×17 pixel grid</p>
         </div>
-        
-        <canvas id="canvas"></canvas>
-        
+
+        <!-- Upload Tab -->
+        <div id="uploadTab" class="tab-content">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <p>📁 Click to upload an image or drag & drop</p>
+                <p class="info">Supports PNG, JPG, GIF, etc.</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/*">
+            
+            <div class="controls">
+                <label for="threshold">Threshold (0-255):</label>
+                <input type="range" id="threshold" min="0" max="255" value="128">
+                <span id="thresholdValue">128</span>
+                <p class="info">Adjust threshold to determine what counts as black vs white</p>
+            </div>
+            
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <h2>Generated Code:</h2>
         <button onclick="copyToClipboard()">📋 Copy to Clipboard</button>
-        
-        <div id="output"></div>
+        <div id="output">Draw something or upload an image to generate code!</div>
     </div>
 
     <script>
+        // Upload functionality
         const fileInput = document.getElementById('fileInput');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -132,22 +217,130 @@
         const thresholdSlider = document.getElementById('threshold');
         const thresholdValue = document.getElementById('thresholdValue');
         
+        // Draw functionality
+        const drawCanvas = document.getElementById('drawCanvas');
+        const drawCtx = drawCanvas.getContext('2d');
+        const gridSize = 17;
+        const cellSize = 30;
+        let currentTool = 'pencil';
+        let isDrawing = false;
+        let pixelData = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+        
         let currentImage = null;
+
+        // Initialize draw canvas
+        function initDrawCanvas() {
+            drawCtx.fillStyle = 'white';
+            drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+            drawGrid();
+        }
+
+        function drawGrid() {
+            drawCtx.strokeStyle = '#e0e0e0';
+            drawCtx.lineWidth = 1;
+            
+            for (let i = 0; i <= gridSize; i++) {
+                drawCtx.beginPath();
+                drawCtx.moveTo(i * cellSize, 0);
+                drawCtx.lineTo(i * cellSize, gridSize * cellSize);
+                drawCtx.stroke();
+                
+                drawCtx.beginPath();
+                drawCtx.moveTo(0, i * cellSize);
+                drawCtx.lineTo(gridSize * cellSize, i * cellSize);
+                drawCtx.stroke();
+            }
+        }
+
+        function drawPixel(x, y) {
+            const col = Math.floor(x / cellSize);
+            const row = Math.floor(y / cellSize);
+            
+            if (col >= 0 && col < gridSize && row >= 0 && row < gridSize) {
+                if (currentTool === 'pencil') {
+                    pixelData[row][col] = 1;
+                    drawCtx.fillStyle = 'black';
+                } else {
+                    pixelData[row][col] = 0;
+                    drawCtx.fillStyle = 'white';
+                }
+                
+                drawCtx.fillRect(col * cellSize + 1, row * cellSize + 1, cellSize - 2, cellSize - 2);
+                updateOutput();
+            }
+        }
+
+        drawCanvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = drawCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            drawPixel(x, y);
+        });
+
+        drawCanvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = drawCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            drawPixel(x, y);
+        });
+
+        drawCanvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
+
+        drawCanvas.addEventListener('mouseleave', () => {
+            isDrawing = false;
+        });
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.getElementById('pencilBtn').classList.toggle('active', tool === 'pencil');
+            document.getElementById('eraserBtn').classList.toggle('active', tool === 'eraser');
+            drawCanvas.style.cursor = tool === 'pencil' ? 'crosshair' : 'not-allowed';
+        }
+
+        function clearCanvas() {
+            pixelData = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+            initDrawCanvas();
+            updateOutput();
+        }
+
+        function updateOutput() {
+            let code = pixelData.map(row => 
+                `intArrayOf(${row.join(', ')})`
+            ).join(', \n');
+            output.textContent = code;
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'draw') {
+                document.getElementById('drawTab').classList.add('active');
+                document.querySelectorAll('.tab')[0].classList.add('active');
+            } else {
+                document.getElementById('uploadTab').classList.add('active');
+                document.querySelectorAll('.tab')[1].classList.add('active');
+            }
+        }
 
         // Drag and drop support
         const uploadArea = document.querySelector('.upload-area');
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#666';
+            uploadArea.style.borderColor = '#bd93f9';
         });
         
         uploadArea.addEventListener('dragleave', () => {
-            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.borderColor = '#6272a4';
         });
         
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.style.borderColor = '#ccc';
+            uploadArea.style.borderColor = '#6272a4';
             const file = e.dataTransfer.files[0];
             if (file && file.type.startsWith('image/')) {
                 loadImage(file);
@@ -200,14 +393,10 @@
                     const g = data[i + 1];
                     const b = data[i + 2];
                     
-                    // Convert to grayscale
                     const gray = (r + g + b) / 3;
-                    
-                    // Black pixel = 1, White pixel = 0
                     const pixel = gray < threshold ? 1 : 0;
                     row.push(pixel);
                     
-                    // Update canvas to show binary version
                     const color = pixel === 1 ? 0 : 255;
                     data[i] = color;
                     data[i + 1] = color;
@@ -218,7 +407,6 @@
             
             ctx.putImageData(imageData, 0, 0);
             
-            // Format as Kotlin/Java code
             let code = result.map(row => 
                 `intArrayOf(${row.join(', ')})`
             ).join(', \n');
@@ -234,6 +422,10 @@
                 console.error('Failed to copy:', err);
             });
         }
+
+        // Initialize
+        initDrawCanvas();
+        updateOutput();
     </script>
 </body>
 </html>
