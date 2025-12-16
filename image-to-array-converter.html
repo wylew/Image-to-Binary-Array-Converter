@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image to Array | Material 3</title>
+    <title>Pixel Array Studio | Bi-Directional</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -147,7 +148,7 @@
         }
 
         #drawCanvas {
-            background-color: white; /* Keep canvas white for drawing contrast */
+            background-color: white; 
             border: 4px solid var(--md-sys-color-outline-variant);
         }
         
@@ -164,7 +165,6 @@
             margin-bottom: 16px;
         }
 
-        /* --- Icon Button / Chip --- */
         .tool-btn {
             background-color: transparent;
             border: 1px solid var(--md-sys-color-outline);
@@ -250,7 +250,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
-        /* --- Code Output --- */
+        /* --- Code Output (Now Editable) --- */
         .output-section {
             background-color: #000;
             border-radius: var(--md-sys-shape-corner-medium);
@@ -273,18 +273,26 @@
             margin: 0;
         }
 
-        #output {
+        textarea#output {
             font-family: 'Fira Code', monospace;
             font-size: 13px;
             color: #A5D6FF; /* Kotlin-ish string color */
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-height: 300px;
-            overflow-y: auto;
+            background-color: #000;
+            border: none;
+            width: 100%;
+            height: 300px;
+            resize: vertical;
+            outline: none;
             line-height: 1.5;
+            box-sizing: border-box;
+        }
+        
+        /* Highlight editability */
+        textarea#output:focus {
+            background-color: #0a0a0a;
+            color: #D0BCFF; /* Shift color slightly on focus */
         }
 
-        /* --- Filled Button (Primary Action) --- */
         .btn-filled {
             background-color: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
@@ -302,11 +310,10 @@
 
         .btn-filled:hover {
             box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15);
-            background-color: #E2D3FF; /* Lighter on hover */
+            background-color: #E2D3FF;
             color: #1d0f3b;
         }
         
-        /* Scrollbar styling */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #49454F; border-radius: 4px; }
@@ -319,7 +326,7 @@
     <div class="app-layout">
         <header>
             <h1>Pixel Array Studio</h1>
-            <p class="subtitle">Generate Kotlin IntArrays for OLED displays</p>
+            <p class="subtitle">Bi-directional Editor: Draw to generate code, or paste code to update drawing</p>
         </header>
 
         <div class="card">
@@ -375,19 +382,17 @@
 
         <div class="output-section">
             <div class="output-header">
-                <h2>Generated Code</h2>
+                <h2>Generated Code (Editable)</h2>
                 <button class="btn-filled" onclick="copyToClipboard()">
                     <span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span>
                     Copy
                 </button>
             </div>
-            <div id="output">// Draw or upload to generate code...</div>
+            <textarea id="output" spellcheck="false" placeholder="Paste your intArrayOf code here..."></textarea>
         </div>
     </div>
 
     <script>
-        // --- LOGIC PRESERVED FROM ORIGINAL ---
-        
         const fileInput = document.getElementById('fileInput');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -404,12 +409,23 @@
         let isDrawing = false;
         let pixelData = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
         let currentImage = null;
+        let isInternalUpdate = false; // Prevents infinite loop between drawing and typing
 
         function initDrawCanvas() {
-            // White canvas for the drawing area
+            // White background for visibility
             drawCtx.fillStyle = '#ffffff'; 
             drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
             drawGrid();
+            
+            // Re-render any existing pixel data (important if coming from paste)
+            for(let r=0; r<gridSize; r++){
+                for(let c=0; c<gridSize; c++){
+                    if(pixelData[r][c] === 1) {
+                        drawCtx.fillStyle = 'black';
+                        drawCtx.fillRect(c * cellSize + 1, r * cellSize + 1, cellSize - 2, cellSize - 2);
+                    }
+                }
+            }
         }
 
         function drawGrid() {
@@ -446,6 +462,42 @@
             }
         }
 
+        // --- NEW: Parse pasted code back into the grid ---
+        function parseInputToGrid() {
+            if (isInternalUpdate) return; // Don't re-parse what we just generated
+            
+            const text = output.value;
+            // Regex to find content inside intArrayOf(...)
+            // Matches "intArrayOf(1, 0, 1...)" globally
+            const matches = [...text.matchAll(/intArrayOf\s*\((.*?)\)/g)];
+            
+            if (matches.length > 0) {
+                // Clear current data temporarily
+                let tempGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+                
+                matches.forEach((match, r) => {
+                    if (r < gridSize) {
+                        // match[1] contains "0, 0, 1, 0..."
+                        const nums = match[1].split(',').map(s => parseInt(s.trim()));
+                        
+                        nums.forEach((val, c) => {
+                            if (c < gridSize && !isNaN(val)) {
+                                tempGrid[r][c] = val === 1 ? 1 : 0;
+                            }
+                        });
+                    }
+                });
+
+                pixelData = tempGrid;
+                // Redraw the canvas to reflect the paste
+                initDrawCanvas();
+            }
+        }
+
+        // Listen for typing/pasting in the textarea
+        output.addEventListener('input', parseInputToGrid);
+
+        // --- Standard Draw Events ---
         drawCanvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
             const rect = drawCanvas.getBoundingClientRect();
@@ -465,7 +517,6 @@
             currentTool = tool;
             document.getElementById('pencilBtn').classList.toggle('active', tool === 'pencil');
             document.getElementById('eraserBtn').classList.toggle('active', tool === 'eraser');
-            // Visual cursor change
             drawCanvas.style.cursor = tool === 'pencil' ? 'crosshair' : 'cell';
         }
 
@@ -476,8 +527,10 @@
         }
 
         function updateOutput() {
+            isInternalUpdate = true; // Flag to prevent the parser from running
             let code = pixelData.map(row => `intArrayOf(${row.join(', ')})`).join(', \n');
-            output.textContent = code;
+            output.value = code; // Changed from textContent to value for textarea
+            isInternalUpdate = false;
         }
 
         function switchTab(tab) {
@@ -493,7 +546,7 @@
             }
         }
 
-        // Upload Logic
+        // --- Upload Logic ---
         const uploadArea = document.querySelector('.upload-area');
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -546,6 +599,10 @@
             const threshold = parseInt(thresholdSlider.value);
             let result = [];
             
+            // Temporary pixel buffer for upload processing
+            // Note: This logic only generates text for the upload tab, 
+            // but we might want to "Import to Edit" if desired.
+            
             for (let y = 0; y < canvas.height; y++) {
                 let row = [];
                 for (let x = 0; x < canvas.width; x++) {
@@ -561,12 +618,12 @@
             }
             ctx.putImageData(imageData, 0, 0);
             
-            output.textContent = result.map(row => `intArrayOf(${row.join(', ')})`).join(', \n');
+            // Only update output if we are looking at it, otherwise it might override drawing
+            output.value = result.map(row => `intArrayOf(${row.join(', ')})`).join(', \n');
         }
 
         function copyToClipboard() {
-            navigator.clipboard.writeText(output.textContent).then(() => {
-                // Simple feedback without alert
+            navigator.clipboard.writeText(output.value).then(() => {
                 const originalText = document.querySelector('.btn-filled').innerHTML;
                 document.querySelector('.btn-filled').innerHTML = `<span class="material-symbols-outlined">check</span> Copied`;
                 setTimeout(() => {
@@ -577,6 +634,7 @@
 
         // Init
         initDrawCanvas();
+        updateOutput();
     </script>
 </body>
 </html>
